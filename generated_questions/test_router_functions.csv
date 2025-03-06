@@ -1,0 +1,11 @@
+expected_output,question
+get_travel_info,What can you tell me about Barcelona for my upcoming trip?
+flight_search,Can you show me available flights from New York to Los Angeles?
+create_itinerary,I need a travel plan for visiting Paris from March 10th to March 20th.
+create_packing_list,What's the best way to pack for a Paris trip in April?
+get_travel_info,Could you find me some details about Tokyo?
+create_packing_list,Can you arrange a packing list for Tokyo next month?
+flight_search,What flights are available from Boston to Miami?
+get_travel_info,"I need travel details about Sydney, Australia."
+create_itinerary,Can you generate a trip plan for my New York visit from June 1 to June 10?
+create_packing_list,"I plan to travel from March 5th to March 12th, what things should I pack?"

@@ -1,9 +1,18 @@
-
+import json
 import gradio as gr
 import os
-import json
+import openai
+from openinference.instrumentation import using_session
+import uuid
+from instrument import setup_tracing
+import prompts
+import tools
 
-# Simple conversation history storage
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+tracer = setup_tracing()
+session_id = str(uuid.uuid4())
+
 class ConversationHistory:
     def __init__(self):
         self.messages = []
@@ -14,16 +23,50 @@ class ConversationHistory:
     def get_history(self):
         return self.messages
     
+    def add_messages(self, messages):
+        self.messages.extend(messages)
+    
     def clear(self):
         self.messages = []
 
-# Travel agent chatbot class
 class TravelAgentBot:
     def __init__(self):
         self.history = ConversationHistory()
-        # Initialize with system message for travel agent persona
-        self.history.add_message("system", "You are a helpful travel agent assistant. Help users plan trips, recommend destinations, and provide travel advice.")
     
+    @tracer.tool(name="process_tool_call")
+    def _process_tool_call(self, tool_call, messages):
+        tool_name = tool_call.function.name
+        tool_args = json.loads(tool_call.function.arguments)
+        tool_result = getattr(tools, tool_name)(**tool_args)
+        messages.append({"role": "tool", "content": tool_result, "tool_call_id": tool_call.id})
+        return messages
+    
+    @tracer.chain(name="process_tool_calls")
+    def process_tool_calls(self, response, messages):
+        for tool_call in response.choices[0].message.tool_calls:
+            messages = self._process_tool_call(tool_call, messages)
+        return messages
+    
+    @tracer.chain(name="route_request")
+    def get_openai_response(self, messages):
+        
+        # router_prompt = prompts.get_prompt("travel-agent-router")
+        # prompt_messages = messages + router_prompt.format(variables={"question": messages[-1]["content"]})
+        # response = openai.chat.completions.create(prompt_messages, **router_prompt.kwargs)
+        
+        router_prompt = prompts.get_prompt("travel-agent-router")
+        router_prompt = router_prompt.format(variables={"question": messages[-1]["content"]})
+        response = openai.chat.completions.create(**router_prompt)
+        
+        messages.append({"role": response.choices[0].message.role, 
+                         "content": response.choices[0].message.content})
+        
+        if response.choices[0].message.tool_calls:
+            messages = self.process_tool_calls(response, messages)
+            
+        return messages
+    
+    @tracer.agent(name="invoke_agent")
     def respond(self, user_input):
         if not user_input.strip():
             return "Please enter a message."
@@ -31,27 +74,20 @@ class TravelAgentBot:
         # Add user message to history
         self.history.add_message("user", user_input)
         
-        # In a real application, you would call an LLM API here
-        # For this skeleton, we'll just use mock responses
-        travel_responses = [
-            "I recommend visiting Paris in the spring. The weather is lovely and the crowds are smaller.",
-            "Costa Rica is perfect for adventure travelers. You can zip-line through rainforests and relax on beautiful beaches.",
-            "For your budget, I'd suggest Southeast Asia. Thailand and Vietnam offer amazing experiences at reasonable prices.",
-            "A 7-day itinerary for Japan should include Tokyo, Kyoto, and perhaps a day trip to Mount Fuji.",
-            "The best time to visit the Caribbean is between December and April, when you'll avoid hurricane season."
-        ]
+        messages = self.history.get_history()
+        messages = self.get_openai_response(messages)
         
-        import random
-        response = random.choice(travel_responses)
+        # Get the assistant's response from the last message
+        for msg in reversed(messages):
+            if msg["role"] == "assistant" or msg["role"] == "tool":
+                assistant_response = msg["content"]
+                return assistant_response
         
-        # Add assistant response to history
-        self.history.add_message("assistant", response)
-        
-        return response
+        return "I'm processing your request."
     
     def clear_history(self):
+        session_id = str(uuid.uuid4())
         self.history.clear()
-        self.history.add_message("system", "You are a helpful travel agent assistant. Help users plan trips, recommend destinations, and provide travel advice.")
         return "Conversation history cleared."
 
 # Initialize the bot
@@ -59,8 +95,9 @@ travel_bot = TravelAgentBot()
 
 # Define the Gradio interface
 def respond_to_user(message, history):
-    bot_response = travel_bot.respond(message)
-    return bot_response
+    with using_session(session_id):
+        bot_response = travel_bot.respond(message)
+        return "", history + [[message, bot_response]]
 
 def clear_chat_history():
     return travel_bot.clear_history()
@@ -74,6 +111,7 @@ with gr.Blocks(css="footer {visibility: hidden}") as demo:
         [],
         elem_id="chatbot",
         avatar_images=(None, "https://img.icons8.com/color/96/000000/tourist-male--v1.png"),
+        type="messages"  # Set type to 'messages' to use openai-style dictionaries
     )
     
     with gr.Row():
@@ -94,4 +132,6 @@ with gr.Blocks(css="footer {visibility: hidden}") as demo:
     clear.click(lambda: "", None, msg)
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    # demo.launch(server_name="0.0.0.0", server_port=7860)
+    # print(travel_bot.respond("What is the weather in Tokyo?"))
+    print(travel_bot.respond("What are the best places to visit in Tokyo?"))

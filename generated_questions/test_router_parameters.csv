@@ -1,0 +1,11 @@
+question,parameters
+What can you tell me about Barcelona for my upcoming trip?,"{""destination"": ""Barcelona""}"
+Can you show me available flights from New York to Los Angeles?,"{""departure"": ""New York"", ""arrival"": ""Los Angeles""}"
+I need a travel plan for visiting Paris from March 10th to March 20th.,"{""destination"": ""Paris"", ""start_date"": ""March 10th"", ""end_date"": ""March 20th""}"
+What's the best way to pack for a Paris trip in April?,"{""destination"": ""Paris"", ""start_date"": ""April 1st"", ""end_date"": ""April 10th""}"
+Could you find me some details about Tokyo?,"{""destination"": ""Tokyo""}"
+Can you arrange a packing list for Tokyo next month?,"{""destination"": ""Tokyo"", ""start_date"": ""November 1st"", ""end_date"": ""November 7th""}"
+What flights are available from Boston to Miami?,"{""departure"": ""Boston"", ""arrival"": ""Miami""}"
+"I need travel details about Sydney, Australia.","{""destination"": ""Sydney""}"
+Can you generate a trip plan for my New York visit from June 1 to June 10?,"{""destination"": ""New York"", ""start_date"": ""June 1st"", ""end_date"": ""June 10th""}"
+"I plan to travel from March 5th to March 12th, what things should I pack?","{""destination"": ""Unknown"", ""start_date"": ""March 5th"", ""end_date"": ""March 12th""}"

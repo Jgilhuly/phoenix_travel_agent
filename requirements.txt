@@ -1,0 +1,8 @@
+google-search-results
+openai
+gradio
+arize-phoenix-otel>=0.8.0
+openinference-instrumentation-openai
+arize-phoenix
+llama-index-core
+python-dotenv
