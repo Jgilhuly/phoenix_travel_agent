@@ -218,6 +218,3 @@ def get_tools():
         function_to_tool(create_itinerary),
         function_to_tool(create_packing_list)
     ]
-    
-if __name__ == "__main__":
-    print(flight_search("SFO", "LAX", "2025-05-08", "2025-05-10"))

@@ -9,3 +9,4 @@ for _, row in questions.iterrows():
     question = row['questions']
     print(f"Question: {question}")
     response = travel_bot.respond(question)
+    travel_bot.clear_history()

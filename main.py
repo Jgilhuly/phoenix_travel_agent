@@ -50,13 +50,17 @@ class TravelAgentBot:
     @tracer.chain(name="route_request")
     def get_openai_response(self, messages):
         
-        # router_prompt = prompts.get_prompt("travel-agent-router")
-        # prompt_messages = messages + router_prompt.format(variables={"question": messages[-1]["content"]})
-        # response = openai.chat.completions.create(prompt_messages, **router_prompt.kwargs)
-        
         router_prompt = prompts.get_prompt("travel-agent-router")
-        router_prompt = router_prompt.format(variables={"question": messages[-1]["content"]})
-        response = openai.chat.completions.create(**router_prompt)
+        formatted_prompt = router_prompt.format(variables={"question": messages[-1]["content"]})
+        prompt_messages = messages + formatted_prompt.get('messages')
+        
+        # Remove any messages with content=None
+        prompt_messages = [msg for msg in prompt_messages if msg.get("content") is not None]
+        
+        response = openai.chat.completions.create(
+            messages=prompt_messages,
+            **formatted_prompt.kwargs
+        )
         
         messages.append({"role": response.choices[0].message.role, 
                          "content": response.choices[0].message.content})
@@ -110,8 +114,8 @@ with gr.Blocks(css="footer {visibility: hidden}") as demo:
     chatbot = gr.Chatbot(
         [],
         elem_id="chatbot",
-        avatar_images=(None, "https://img.icons8.com/color/96/000000/tourist-male--v1.png"),
-        type="messages"  # Set type to 'messages' to use openai-style dictionaries
+        avatar_images=(None, "https://img.icons8.com/color/96/000000/tourist-male--v1.png")
+        # Removed 'type="messages"' which was causing the error
     )
     
     with gr.Row():
@@ -132,6 +136,6 @@ with gr.Blocks(css="footer {visibility: hidden}") as demo:
     clear.click(lambda: "", None, msg)
 
 if __name__ == "__main__":
-    # demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch(server_name="0.0.0.0", server_port=7860)
     # print(travel_bot.respond("What is the weather in Tokyo?"))
-    print(travel_bot.respond("What are the best places to visit in Tokyo?"))
+    # print(travel_bot.respond("What are the best places to visit in Tokyo?"))
